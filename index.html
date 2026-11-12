@@ -1,1 +1,70 @@
+from pathlib import Path
+import re
+
+src = Path("/mnt/data/Pasted text(1).txt")
+html = src.read_text(encoding="utf-8")
+
+# Add an explicit in-flight guard so a single click can never trigger two saves.
+html = html.replace('let dept = "";', 'let dept = "";\nlet isSaving = false;')
+
+# Replace the old amount validation and submit handler with stricter validation.
+old = '''  const amountRaw = $("fAmount").value.trim();
+  const amount = Number(amountRaw);
+  if(!Number.isFinite(amount) || amount <= 0 || amount > MAX_AMOUNT){
+    setMessage("Please enter an amount between RM0.01 and RM99,999,999.99.","danger");
+    $("fAmount").focus();
+    return;
+  }
+  if(!Number.isInteger(Math.round(amount*100))){
+    setMessage("Amount must be valid to 2 decimal places.","danger");
+    return;
+  }'''
+new = '''  if(isSaving) return;
+
+  const amountRaw = $("fAmount").value.trim();
+  // Reject scientific notation and more than 2 decimal places.
+  if(!/^\\\\d{1,8}(\\\\.\\\\d{1,2})?$/.test(amountRaw)){
+    setMessage("Enter a valid amount with no more than 2 decimal places (maximum RM99,999,999.99).","danger");
+    $("fAmount").focus();
+    return;
+  }
+  const amount = Number(amountRaw);
+  if(!Number.isFinite(amount) || amount < 0.01 || amount > MAX_AMOUNT){
+    setMessage("Please enter an amount between RM0.01 and RM99,999,999.99.","danger");
+    $("fAmount").focus();
+    return;
+  }'''
+if old not in html:
+    raise RuntimeError("Could not find the original amount validation block.")
+html = html.replace(old, new)
+
+html = html.replace('''  const btn = $("btnSave");
+  btn.disabled = true;
+  setMessage("Saving to Google Sheets…");
+  try{
+    await apiSave(entry);''', '''  const btn = $("btnSave");
+  isSaving = true;
+  btn.disabled = true;
+  setMessage("Saving to Google Sheets…");
+  try{
+    await apiSave(entry);''')
+
+html = html.replace('''  }finally{
+    btn.disabled = false;
+  }
+});''', '''  }finally{
+    isSaving = false;
+    btn.disabled = false;
+  }
+});''', 1)
+
+# Make the double-entry explanation explicit in the UI.
+html = html.replace(
+    'Each transaction is shown as Debit followed by Credit.',
+    'One expense creates exactly 2 journal lines: Debit (expense) and Credit (payment source).'
+)
+
+out = Path("/mnt/data/index.html")
+out.write_text(html, encoding="utf-8")
+print(f"Created {out} ({len(html)} characters)")
 
