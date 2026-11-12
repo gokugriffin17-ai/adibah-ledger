@@ -131,7 +131,7 @@ th{color:var(--ink);white-space:nowrap}
 
 <script>
 // Paste the deployed Google Apps Script Web App URL here. It must end in /exec.
-const API_URL = "PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";
+const API_URL = "https://script.google.com/macros/s/AKfycbwwTH2szIMJplFTERQvwqXfQTRfNHcs43wIO4t5iyD40eFUhhsI55R0GMSGm2qJ0yY5/exec"; 
 const MAX_AMOUNT = 99999999.99;
 const $ = id => document.getElementById(id);
 let dept = "";
